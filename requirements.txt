@@ -1,0 +1,14 @@
+# Requirements for the Novel RAG Project.
+# These libraries help us connect to Gemini, process text locally, and manage the vector database.
+
+# Google Generative AI SDK: Used to query the Gemini large language model.
+google-generativeai==0.8.3
+
+# ChromaDB: Our local vector database where we will store the chopped up novel chapters.
+chromadb==0.5.21
+
+# Sentence Transformers: A local library by HuggingFace. We will use this to convert our text into numbers (vectors) locally for free.
+sentence-transformers==3.3.1
+
+# python-dotenv: A simple tool to read our fast-changing API keys securely from a .env file without hardcoding them.
+python-dotenv==1.0.1

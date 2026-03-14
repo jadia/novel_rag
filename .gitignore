@@ -1,0 +1,20 @@
+# Python Virtual Environments
+venv/
+.venv/
+env/
+data/
+
+# Python Cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment Variables
+.env
+.env.free
+.env.paid
+# Database Files
+db/
+
+# MacOS/System
+.DS_Store
