@@ -1,6 +1,14 @@
-# 📚 Novel RAG Tutorial Project
+# 📚 Novel-RAG: The Expert Lore-Keeper
 
-Welcome to your first Retrieval-Augmented Generation (RAG) system! This project is designed specifically for learning the core mechanics of how an LLM can answer questions about your private markdown files without relying on magic, overly-complex frameworks.
+**Novel-RAG** is a specialized Retrieval-Augmented Generation system built to navigate the complexities of long-form fiction. While standard RAG often struggles with character pronouns and evolving plot points, this system uses strategic chunking and high-precision retrieval to provide accurate answers about character relationships, past events, and hidden lore.
+
+### Core Capabilities:
+*   📖 **Deep Novel Indexing**: Process hundreds of markdown chapters into a persistent local vector database.
+*   🤝 **Relationship Mapping**: Designed specifically to track "Who did what to whom" across 500,000+ words.
+*   ⚡ **Hybrid Embeddings**: Switch between local `sentence-transformers` for privacy/cost and Gemini API for maximum accuracy.
+*   🛡️ **Anti-Hallucination**: Restrictive prompting ensures the AI acts as a historian, not a co-author, citing its sources for every claim.
+
+---
 
 ## 🚀 Quick Start Guide
 
@@ -97,3 +105,10 @@ We use **ChromaDB**. It stores the markdown text *alongside* the numerical vecto
 
 ### 4. Generation Pipeline (`src/app.py`)
 We don't just ask Gemini your question blindly. We use "Prompt Engineering" to artificially restrict Gemini. We give it the 7 closest markdown chunks we found, and explicitly tell it: *"Answer the user's question using ONLY these specific chunks, and cite your sources."*
+
+---
+
+## 📜 License & Acknowledgments
+This project is licensed under the MIT License. 
+
+*This repository was built using an AI-assisted "vibe coding" approach—focusing on rapid iteration, intuitive flow, and collaborative generation to bridge the gap between idea and implementation.*
