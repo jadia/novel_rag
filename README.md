@@ -2,6 +2,9 @@
 
 **Novel-RAG** is a specialized Retrieval-Augmented Generation system built to navigate the complexities of long-form fiction. While standard RAG often struggles with character pronouns and evolving plot points, this system uses strategic chunking and high-precision retrieval to provide accurate answers about character relationships, past events, and hidden lore.
 
+![Novel-RAG Demo](images/demo-image.png)
+
+
 ### Core Capabilities:
 *   📖 **Deep Novel Indexing**: Process hundreds of markdown chapters into a persistent local vector database.
 *   🤝 **Relationship Mapping**: Designed specifically to track "Who did what to whom" across 500,000+ words.
