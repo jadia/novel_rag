@@ -1,14 +1,40 @@
 # Requirements for the Novel RAG Project.
-# These libraries help us connect to Gemini, process text locally, and manage the vector database.
+# These libraries power the RAG pipeline, web server, and testing framework.
 
-# Google Generative AI SDK: Used to query the Gemini large language model.
-google-generativeai==0.8.3
+# ===== CORE RAG ENGINE =====
 
-# ChromaDB: Our local vector database where we will store the chopped up novel chapters.
-chromadb==0.5.21
+# Google Generative AI SDK: Used to query the Gemini LLM and Embedding API.
+google-generativeai>=0.8.3
 
-# Sentence Transformers: A local library by HuggingFace. We will use this to convert our text into numbers (vectors) locally for free.
-sentence-transformers==3.3.1
+# ChromaDB: Local vector database for storing/searching novel text embeddings.
+chromadb>=0.5.21
 
-# python-dotenv: A simple tool to read our fast-changing API keys securely from a .env file without hardcoding them.
-python-dotenv==1.0.1
+# Sentence Transformers: HuggingFace library for local text-to-vector conversion.
+# Only needed if USE_LOCAL_EMBEDDINGS is True.
+sentence-transformers>=3.3.1
+
+# python-dotenv: Reads API keys from .env files securely.
+python-dotenv>=1.0.1
+
+# ===== WEB SERVER =====
+
+# FastAPI: Modern async web framework with automatic API docs and validation.
+fastapi>=0.115.0
+
+# Uvicorn: ASGI server that runs FastAPI. The [standard] extra includes
+# websockets and uvloop for better performance.
+uvicorn[standard]>=0.30.0
+
+# Aiofiles: Async file serving for static frontend files.
+aiofiles>=24.1.0
+
+# ===== TESTING =====
+
+# Pytest: The standard Python testing framework.
+pytest>=8.0.0
+
+# Pytest-asyncio: Enables testing async functions (FastAPI endpoints, WebSockets).
+pytest-asyncio>=0.24.0
+
+# HTTPX: Async HTTP client used by FastAPI's TestClient for testing.
+httpx>=0.27.0

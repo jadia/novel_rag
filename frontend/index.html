@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<!--
+=============================================================================
+Novel RAG — Web Interface
+=============================================================================
+This is a Single Page Application (SPA) built with vanilla HTML, CSS, and
+JavaScript — no React, no Vue, no build tools needed.
+
+WHY VANILLA?
+1. Zero build complexity — just open this file and it works
+2. Pure web fundamentals — learn HTML/CSS/JS directly, not framework abstractions
+3. Lightweight — no 200KB framework download, just ~30KB total
+4. Educational — every line is readable, nothing hidden behind @decorators
+
+STRUCTURE:
+  - Sidebar:    Novel selector (top), session list (middle), settings (bottom)
+  - Main area:  Chat messages + input bar
+  - Modal:      Settings overlay (can appear on top of everything)
+
+The CSS file handles the visual design (colors, layout, animations).
+The JS file handles all logic (API calls, WebSocket, DOM manipulation).
+=============================================================================
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Novel RAG — Ask questions about your favorite novels using AI-powered retrieval augmented generation.">
+    <title>Novel RAG — The Expert Lore-Keeper</title>
+
+    <!-- Google Fonts: Inter — a clean, modern, highly readable typeface -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Our design system stylesheet -->
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <!-- ================================================================= -->
+    <!-- APP CONTAINER — Full viewport wrapper                              -->
+    <!-- ================================================================= -->
+    <div id="app" class="app-container">
+
+        <!-- ============================================================= -->
+        <!-- SIDEBAR — Novel selector, sessions, settings                   -->
+        <!-- ============================================================= -->
+        <aside id="sidebar" class="sidebar">
+            <!-- App branding -->
+            <div class="sidebar-header">
+                <h1 class="logo">📚 Novel<span class="logo-accent">RAG</span></h1>
+            </div>
+
+            <!-- Novel selector dropdown -->
+            <div class="sidebar-section">
+                <label class="section-label" for="novel-select">Select Novel</label>
+                <select id="novel-select" class="novel-select">
+                    <option value="">— Choose a novel —</option>
+                </select>
+                <!-- Embedding status indicator -->
+                <div id="novel-status" class="novel-status hidden">
+                    <span id="status-dot" class="status-dot"></span>
+                    <span id="status-text" class="status-text">Checking...</span>
+                </div>
+            </div>
+
+            <!-- Action buttons row -->
+            <div class="sidebar-actions">
+                <button id="btn-new-chat" class="btn btn-primary" disabled>
+                    <span class="btn-icon">✨</span> New Chat
+                </button>
+                <button id="btn-reingest" class="btn btn-secondary" disabled title="Re-process novel embeddings">
+                    <span class="btn-icon">🔄</span> Re-Embed
+                </button>
+            </div>
+
+            <!-- Session list (chat history) -->
+            <div class="sidebar-section session-section">
+                <label class="section-label">Chat History</label>
+                <div id="session-list" class="session-list">
+                    <p class="empty-state">Select a novel to see chats</p>
+                </div>
+            </div>
+
+            <!-- Bottom toolbar -->
+            <div class="sidebar-footer">
+                <button id="btn-theme-toggle" class="btn btn-icon-only" title="Toggle dark/light mode">
+                    <span id="theme-icon">🌙</span>
+                </button>
+                <button id="btn-settings" class="btn btn-icon-only" title="Settings">
+                    ⚙️
+                </button>
+            </div>
+        </aside>
+
+        <!-- ============================================================= -->
+        <!-- MAIN CHAT AREA                                                 -->
+        <!-- ============================================================= -->
+        <main id="main-area" class="main-area">
+            <!-- Welcome screen (shown when no chat is active) -->
+            <div id="welcome-screen" class="welcome-screen">
+                <div class="welcome-content">
+                    <div class="welcome-icon">📖</div>
+                    <h2>Welcome to Novel RAG</h2>
+                    <p>Select a novel from the sidebar, then start a new chat or resume an existing one.</p>
+                    <div class="welcome-features">
+                        <div class="feature-card">
+                            <span class="feature-icon">🔍</span>
+                            <span>Deep Lore Search</span>
+                        </div>
+                        <div class="feature-card">
+                            <span class="feature-icon">🤝</span>
+                            <span>Character Relationships</span>
+                        </div>
+                        <div class="feature-card">
+                            <span class="feature-icon">🛡️</span>
+                            <span>Anti-Hallucination</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chat view (shown during active chat) -->
+            <div id="chat-view" class="chat-view hidden">
+                <!-- Message container (scrollable) -->
+                <div id="message-container" class="message-container">
+                    <!-- Messages are dynamically inserted here by app.js -->
+                </div>
+
+                <!-- Typing indicator -->
+                <div id="typing-indicator" class="typing-indicator hidden">
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                </div>
+
+                <!-- Input bar -->
+                <div class="input-bar">
+                    <textarea
+                        id="question-input"
+                        class="question-input"
+                        placeholder="Ask about characters, events, or lore..."
+                        rows="1"
+                    ></textarea>
+                    <button id="btn-send" class="btn btn-send" disabled title="Send message">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 2L11 13"></path>
+                            <path d="M22 2L15 22L11 13L2 9L22 2Z"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- SETTINGS MODAL — Overlay for API keys, model config                -->
+    <!-- ================================================================= -->
+    <div id="settings-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>⚙️ Settings</h2>
+                <button id="btn-close-settings" class="btn btn-icon-only modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- API Key -->
+                <div class="form-group">
+                    <label for="setting-api-key">Gemini API Key</label>
+                    <input type="password" id="setting-api-key" class="form-input" placeholder="Enter your API key">
+                    <small class="form-help">Your key is stored securely on the server and masked in the UI.</small>
+                </div>
+                <!-- Generation Model -->
+                <div class="form-group">
+                    <label for="setting-gen-model">Generation Model</label>
+                    <input type="text" id="setting-gen-model" class="form-input" placeholder="models/gemini-2.0-flash">
+                    <small class="form-help">The Gemini model used for generating answers.</small>
+                </div>
+                <!-- Embeddings toggle -->
+                <div class="form-group">
+                    <label for="setting-use-local">Embedding Mode</label>
+                    <select id="setting-use-local" class="form-input">
+                        <option value="false">Gemini API (accurate, uses quota)</option>
+                        <option value="true">Local HuggingFace (free, slower)</option>
+                    </select>
+                </div>
+                <!-- Embedding model names -->
+                <div class="form-group">
+                    <label for="setting-api-model">API Embedding Model</label>
+                    <input type="text" id="setting-api-model" class="form-input" placeholder="models/gemini-embedding-001">
+                </div>
+                <div class="form-group">
+                    <label for="setting-local-model">Local Embedding Model</label>
+                    <input type="text" id="setting-local-model" class="form-input" placeholder="all-MiniLM-L6-v2">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="btn-save-settings" class="btn btn-primary">Save Settings</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- INGEST MODAL — Progress bar during re-embedding                    -->
+    <!-- ================================================================= -->
+    <div id="ingest-modal" class="modal-overlay hidden">
+        <div class="modal-content modal-small">
+            <div class="modal-header">
+                <h2>🔄 Embedding Progress</h2>
+            </div>
+            <div class="modal-body">
+                <p id="ingest-message" class="ingest-message">Preparing...</p>
+                <div class="progress-bar-container">
+                    <div id="progress-bar" class="progress-bar" style="width: 0%"></div>
+                </div>
+                <p id="ingest-percent" class="ingest-percent">0%</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application logic -->
+    <script src="/static/app.js"></script>
+</body>
+</html>
