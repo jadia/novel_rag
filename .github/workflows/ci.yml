@@ -1,0 +1,78 @@
+# =============================================================================
+# GitHub Actions CI/CD Pipeline
+# =============================================================================
+# This workflow runs automatically on every push and pull request to main.
+#
+# WHAT IT DOES:
+#   1. Sets up Python 3.12
+#   2. Installs dependencies
+#   3. Runs the full test suite with pytest
+#   4. Runs a Docker build smoke test (ensure the image builds cleanly)
+#
+# WHY CI/CD?
+# Continuous Integration catches bugs BEFORE they reach the main branch.
+# If a test fails, the PR gets a red ❌ and you know something is broken.
+# This is especially important in collaborative projects where multiple
+# people contribute code.
+# =============================================================================
+
+name: CI
+
+# Trigger: Run on pushes and PRs to main branch
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Check out the repository code
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: Set up Python 3.12
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Step 3: Cache pip dependencies for faster subsequent runs
+      # If requirements.txt hasn't changed, pip uses the cached packages
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      # Step 4: Install all Python dependencies
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # Step 5: Run the test suite with verbose output
+      - name: Run tests
+        env:
+          # Provide a dummy API key so config doesn't error on import
+          GEMINI_API_KEY: "ci-test-dummy-key"
+        run: python -m pytest tests/ -v --tb=short
+
+  docker:
+    name: Docker Build Smoke Test
+    runs-on: ubuntu-latest
+    # Only run Docker build if tests pass
+    needs: test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Verify the Docker image builds successfully
+      # We don't push it anywhere — just confirm it compiles
+      - name: Build Docker image
+        run: docker build -t novel-rag:ci-test .

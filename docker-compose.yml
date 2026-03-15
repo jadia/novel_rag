@@ -1,0 +1,84 @@
+# =============================================================================
+# Docker Compose — Novel RAG Service Configuration
+# =============================================================================
+# This file defines how to run the Novel RAG application as a Docker service.
+#
+# WHAT DOCKER COMPOSE DOES:
+# Instead of remembering long `docker run` commands with volumes, ports, and
+# environment variables, you define everything here and run `docker compose up`.
+#
+# SECRETS MANAGEMENT STRATEGY:
+# We use a layered approach:
+#   1. The .env file is loaded automatically by Docker Compose (env_file)
+#   2. Environment variables can override .env values
+#   3. The app's SettingsManager can override everything at runtime
+#   This means you can set API keys via .env for local dev, via CI/CD
+#   environment variables for production, or via the Settings UI at runtime.
+#
+# VOLUMES:
+#   - data/ is bind-mounted read-only (your novel chapters)
+#   - novel-rag-db is a named volume (persistent ChromaDB + chat history)
+#   Named volumes survive `docker compose down` and even `docker compose rm`.
+#   Your embeddings and chat history are safe across container recreations.
+#
+# USAGE:
+#   docker compose up -d          # Start in background
+#   docker compose logs -f        # Watch logs
+#   docker compose down           # Stop (data preserved in volumes)
+#   docker compose down -v        # Stop AND delete volumes (destructive!)
+# =============================================================================
+
+services:
+  novel-rag:
+    # Build from the Dockerfile in the current directory
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    # Container name for easy reference in logs and commands
+    container_name: novel-rag
+
+    # Port mapping: host:container
+    # Access the app at http://localhost:8000
+    ports:
+      - "8000:8000"
+
+    # --- VOLUMES ---
+    volumes:
+      # Your novel chapters (read-only — the app never modifies source data)
+      - ./data:/app/data:ro
+
+      # Persistent storage for ChromaDB embeddings, SQLite chat history,
+      # and runtime settings. Using a named volume means this data survives
+      # container recreation.
+      - novel-rag-db:/app/db
+
+    # --- ENVIRONMENT VARIABLES ---
+    # Load from .env file (secrets like API keys)
+    env_file:
+      - .env
+
+    # You can also set/override variables directly:
+    environment:
+      - PYTHONPATH=/app
+
+    # --- HEALTH CHECK ---
+    # Docker periodically pings this endpoint. If it fails 3 times in a row,
+    # the container is marked "unhealthy". Orchestrators like Docker Swarm
+    # or Kubernetes can automatically restart unhealthy containers.
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+    # Restart the container if it crashes (but not if manually stopped)
+    restart: unless-stopped
+
+# --- NAMED VOLUMES ---
+# Named volumes are managed by Docker and stored in Docker's data directory.
+# They persist across container lifecycle events (stop, remove, recreate).
+volumes:
+  novel-rag-db:
+    name: novel-rag-db

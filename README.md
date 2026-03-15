@@ -2,113 +2,195 @@
 
 **Novel-RAG** is a specialized Retrieval-Augmented Generation system built to navigate the complexities of long-form fiction. While standard RAG often struggles with character pronouns and evolving plot points, this system uses strategic chunking and high-precision retrieval to provide accurate answers about character relationships, past events, and hidden lore.
 
+![Novel-RAG Demo](images/demo-image.png)
+
+
 ### Core Capabilities:
 *   📖 **Deep Novel Indexing**: Process hundreds of markdown chapters into a persistent local vector database.
 *   🤝 **Relationship Mapping**: Designed specifically to track "Who did what to whom" across 500,000+ words.
 *   ⚡ **Hybrid Embeddings**: Switch between local `sentence-transformers` for privacy/cost and Gemini API for maximum accuracy.
 *   🛡️ **Anti-Hallucination**: Restrictive prompting ensures the AI acts as a historian, not a co-author, citing its sources for every claim.
+*   🌐 **Web Interface**: Modern chat UI with streaming responses, session history, and a settings panel.
+*   🐳 **Docker-Ready**: One command to build and run the entire application.
 
 ---
 
 ## 🚀 Quick Start Guide
 
-### 1. Installation
-Ensure you have Python 3.9+ installed. Follow these commands in your terminal:
+### Option A: Docker (Recommended)
+
+The easiest way to run Novel RAG — everything is containerized.
 
 ```bash
-# Optimal but recommended: Create a virtual environment
-python -m venv venv
-source venv/bin/activate  # Or `venv\Scripts\activate` on Windows
+# 1. Clone the repository
+git clone https://github.com/your-username/novel_rag.git
+cd novel_rag
 
-# Install the dependencies
+# 2. Create your .env file with your API key
+cp .env.example .env
+# Edit .env and add your GEMINI_API_KEY
+
+# 3. Add your novels (markdown chapters in subfolders of data/)
+mkdir -p data/my-novel
+# Copy your .md chapter files into data/my-novel/
+
+# 4. Build and run
+docker compose up -d
+
+# 5. Open your browser
+# http://localhost:8000
+```
+
+### Option B: Bare Metal (Python 3.12+)
+
+```bash
+# 1. Create and activate virtual environment
+python -m venv .venv
+source .venv/bin/activate  # Or `.venv\Scripts\activate` on Windows
+
+# 2. Install dependencies
 pip install -r requirements.txt
+
+# 3. Configure
+cp .env.example .env
+# Edit .env and add your GEMINI_API_KEY
+
+# 4. Add your novels to data/
+mkdir -p data/my-novel
+# Copy .md files into data/my-novel/
+
+# 5a. Run the Web UI
+uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+# Open http://localhost:8000
+
+# 5b. Or run the CLI (original terminal mode)
+python -m src.cli
 ```
 
-### 2. Configuration & API Keys
-1. Copy the template environment file:
-   `cp .env.example .env`
-2. Open `.env` and paste your Google Gemini API key:
-   `GEMINI_API_KEY="your-api-key-here"`
+---
 
-### 3. Adding Novels
-This system supports **multiple distinct novels**. Each novel gets its own isolated database so characters from "Harry Potter" don't get mixed up with characters from "Lord of the Rings".
+## 📱 Using the Web Interface
 
-To add your novel:
-1. Create a folder inside the `data/` directory. The folder name will be your novel's name.
-2. Put your `.md` markdown chapters inside that folder.
+### 1. Select a Novel
+Choose a novel from the sidebar dropdown. The status indicator shows whether embeddings exist.
 
-*Example directory structure:*
-```text
-novel_rag/
-└── data/
-    ├── became-the-patron-of-villains/
-    │   ├── 001-chapter-1.md
-    │   └── 002-chapter-2.md
-    └── another-epic-fantasy/
-        ├── prologue.md
-        └── chapter-1.md
-```
+### 2. First-Time Embedding
+If a novel hasn't been processed yet, click **Re-Embed**. A progress bar shows real-time embedding progress via WebSocket.
 
-### 4. Running the App
-You only need one command to run everything! Make sure to use the python binary inside your `.venv` to avoid version conflicts (the app requires Python 3).
+### 3. Chat
+Click **New Chat** to start asking questions. Responses stream in token-by-token — no waiting for the full answer.
 
-```bash
-# From the project root (novel_rag/):
-./.venv/bin/python src/app.py
-```
+### 4. Chat History
+Previous chats appear in the sidebar. Click any session to resume it. Sessions auto-title from your first message.
 
-**What happens next?**
-1. The app detects the folders in `data/` and asks you to select a novel.
-2. **First Time Setup:** If you select a novel that has never been processed, the system will automatically detect this and run the "Ingestion Pipeline". It will chunk the markdown texts, embed them, and save them to the database. *(This takes a few minutes).*
-3. **Chatting:** Once ingestion finishes (or if it was already processed previously), you enter the chat loop. Ask away!
+### 5. Settings
+Click the ⚙️ gear icon to change:
+- **API Key** — your Gemini API key (stored securely, masked in the UI)
+- **Generation Model** — which Gemini model generates answers
+- **Embedding Mode** — Local (HuggingFace, free) or API (Gemini, accurate)
+- **Model Names** — customize embedding model names
+
+### 6. Theme
+Toggle between light and dark mode with the 🌙/☀️ button. Your preference is saved in the browser.
 
 ---
 
 ## 🔁 Use Cases & Updating Data
 
 ### How to add entirely new novels
-Simply create a new folder in `data/` and add your `.md` files. When you run `app.py`, it will appear in the selection menu. The script will handle creating a new Database collection for it automatically.
+Create a new folder in `data/` and add your `.md` files. The novel appears in the dropdown on next page load.
 
 ### How to add new chapters to an existing novel
-If you drop new `.md` files into a novel's folder that has already been processed in the past, the database won't automatically know about them. 
+Drop new `.md` files into the novel's folder, then click **Re-Embed** in the UI (or type `!reingest` in CLI mode).
 
-To force the system to re-read the files and update the database:
-1. Run `python src/app.py` and select the novel.
-2. When the chat prompt appears, type: `!reingest`
-3. The system will process everything and update your chunks.
+---
+
+## 🧪 Running Tests
+
+```bash
+# Run the full test suite
+python -m pytest tests/ -v
+
+# Run specific test files
+python -m pytest tests/test_document_processor.py -v
+python -m pytest tests/test_chat_store.py -v
+python -m pytest tests/test_api.py -v
+python -m pytest tests/test_settings.py -v
+```
+
+Tests run automatically on every push/PR via GitHub Actions CI/CD.
 
 ---
 
 ## 🧠 Educational Details: How This Works
 
-This application is split into highly modular parts so you can study exactly how the data flows.
+This application is split into highly modular parts so you can study exactly how the data flows. For a deep dive, see the **dedicated documentation**:
 
-### 1. Chunking & Strategy (`src/document_processor.py`)
-An average chapter in this novel contains roughly **1,888 words (or ~10,000 characters)**. You might wonder: *Why not just insert an entire chapter into the database as a single chunk?*
+| Document | What It Covers |
+|----------|---------------|
+| [**Architecture Guide**](docs/ARCHITECTURE.md) | System diagrams, design decisions, patterns, and rationale |
+| [**WebSocket Guide**](docs/WEBSOCKETS.md) | Streaming protocol, annotated code, connection lifecycle |
 
-**Why not whole chapters?**
-* **Relevance Dilution:** If a chapter covers a sword fight, a political debate, and a quiet character moment, a single mathematical 'vector' representing all three will be muddled. It won't strongly match a specific user question about just the sword fight.
-* **Token Limits & Cost:** Passing entire 10,000-character chunks to the LLM for every question burns through API limits and slows down generation times.
-* **Retrieval Precision:** RAG is designed to fetch the *exact* paragraphs relevant to your question.
+### Quick Overview
 
-**Why 600 characters with 150-character overlap?**
-* **600 characters (~100-150 words)** is the 'Goldilocks zone'. It's about the size of a single descriptive paragraph or a quick back-and-forth dialogue. This ensures the resulting vector is highly specific to one event or interaction.
-* **150-character overlap** is a safeguard context window. Novels often replace character names with pronouns across paragraphs. If Chunk A says "Yutia grabbed her sword," and Chunk B says "She swung it at the demon," an overlap ensures Chunk B still contains the word "Yutia," so the database and the LLM know who "She" is related to.
+1. **Chunking** (`src/core/document_processor.py`) — Chapters are split into ~600-char overlapping chunks using a sliding window. The 150-char overlap prevents pronoun references from being lost between chunks.
 
-### 2. Embeddings (`src/embeddings.py` & `src/config.py`)
-An Embedding is the process of translating plain text into lists of numbers (a vector) so a computer can quickly calculate how similar two sentences are. 
-* **The Switch:** Open `src/config.py`. By default, `USE_LOCAL` is set to `True`. Because you have a capable processor, we use HuggingFace (`all-MiniLM-L6-v2`) to generate the math for free locally. 
-* Change it to `False` to use the Gemini Embedding API instead (uses your quota, but perfectly matches Gemini's understanding).
+2. **Embeddings** (`src/core/embeddings.py`) — Text chunks are converted to numerical vectors (arrays of floats). You can switch between free local embeddings (HuggingFace) and paid Gemini API embeddings.
 
-### 3. Vector Database (`src/vector_db.py`)
-We use **ChromaDB**. It stores the markdown text *alongside* the numerical vectors we generated. Based on your prompt selection, we create "Collections" (like tables) dynamically for each novel.
+3. **Vector Database** (`src/core/vector_db.py`) — ChromaDB stores text alongside its embedding vector. When you ask a question, it finds the mathematically nearest chunks.
 
-### 4. Generation Pipeline (`src/app.py`)
-We don't just ask Gemini your question blindly. We use "Prompt Engineering" to artificially restrict Gemini. We give it the 7 closest markdown chunks we found, and explicitly tell it: *"Answer the user's question using ONLY these specific chunks, and cite your sources."*
+4. **Generation** (`src/api/routes.py`) — The 7 most relevant chunks are injected into a carefully engineered prompt, and Gemini generates an answer citing its sources.
+
+5. **Streaming** — Responses stream token-by-token via WebSocket, so you see the answer being written in real-time.
+
+---
+
+## 📁 Project Structure
+
+```
+novel_rag/
+├── src/
+│   ├── core/                    # Core RAG engine (framework-independent)
+│   │   ├── config.py            # Settings manager with 3-tier priority
+│   │   ├── document_processor.py # Chapter chunking algorithm
+│   │   ├── embeddings.py        # Text-to-vector conversion
+│   │   ├── vector_db.py         # ChromaDB wrapper
+│   │   └── utils.py             # Logging and timing utilities
+│   ├── api/                     # FastAPI web layer
+│   │   ├── routes.py            # REST + WebSocket endpoints
+│   │   └── chat_store.py        # SQLite session persistence
+│   ├── main.py                  # FastAPI app entry point
+│   └── cli.py                   # Original terminal interface
+├── frontend/                    # Vanilla HTML/CSS/JS chat UI
+│   ├── index.html
+│   ├── style.css
+│   └── app.js
+├── tests/                       # Test suite (39 tests)
+├── docs/                        # Architecture & WebSocket documentation
+├── data/                        # Your novel chapters (gitignored)
+├── db/                          # ChromaDB + SQLite data (gitignored)
+├── Dockerfile                   # Container build instructions
+├── docker-compose.yml           # Service orchestration
+├── .github/workflows/ci.yml     # CI/CD pipeline
+└── requirements.txt             # Python dependencies
+```
+
+---
+
+## 💡 Suggested Future Features
+
+1. **Multi-modal RAG** — Support images/illustrations embedded in novel chapters
+2. **Chapter-level filtering** — Ask questions scoped to specific chapters
+3. **Export conversations** — Download chat history as Markdown
+4. **Authentication** — Multi-user support with login
+5. **Novel upload via UI** — Drag-and-drop `.md` files
+6. **Semantic search UI** — Show retrieved chunks alongside the answer for transparency
+7. **Chunk visualization** — Interactive view of how a chapter was split
+8. **Comparison mode** — Compare lore across multiple novels side-by-side
 
 ---
 
 ## 📜 License & Acknowledgments
-This project is licensed under the MIT License. 
+This project is licensed under the MIT License.
 
 *This repository was built using an AI-assisted "vibe coding" approach—focusing on rapid iteration, intuitive flow, and collaborative generation to bridge the gap between idea and implementation.*
